@@ -28,25 +28,26 @@ The solution will include:
 
 The platform will use the following high-level request flow:
 
-
+```text
 User
   |
-  v
+  >
 Amazon Route 53
   |
-  v
+  >
 Amazon CloudFront
   |
   v
 Private Amazon S3 Bucket
-
+  |
+  >
 Frontend JavaScript
   |
-  v
+  >
 Amazon API Gateway
   |
-  v
+  >
 AWS Lambda
   |
-  v
+  >
 Amazon DynamoDB
