@@ -37,7 +37,7 @@ Amazon Route 53
   >
 Amazon CloudFront
   |
-  v
+  >
 Private Amazon S3 Bucket
   |
   >
