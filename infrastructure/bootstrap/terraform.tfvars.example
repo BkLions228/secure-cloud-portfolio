@@ -1,0 +1,4 @@
+aws_region        = "us-east-1"
+project_name      = "secure-cloud-portfolio"
+owner             = "kellan-wilkerson"
+state_bucket_name = "replace-with-a-globally-unique-bucket-name"
