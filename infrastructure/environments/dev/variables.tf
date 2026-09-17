@@ -69,3 +69,21 @@ variable "enable_versioning" {
   type        = bool
   default     = true
 }
+
+variable "github_organization" {
+  description = "GitHub organization or username that owns the portfolio repository."
+  type        = string
+  default     = "BkLions228"
+}
+
+variable "github_repository" {
+  description = "GitHub repository authorized to deploy the portfolio."
+  type        = string
+  default     = "secure-cloud-portfolio"
+}
+
+variable "github_deployment_branch" {
+  description = "GitHub branch authorized to assume the AWS deployment role."
+  type        = string
+  default     = "main"
+}

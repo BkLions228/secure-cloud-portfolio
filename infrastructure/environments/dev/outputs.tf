@@ -17,3 +17,7 @@ output "portfolio_url" {
   description = "Development portfolio URL."
   value       = "https://${module.static_site.cloudfront_domain_name}"
 }
+output "github_actions_role_arn" {
+  description = "IAM role ARN used by GitHub Actions for frontend deployment."
+  value       = module.github_oidc.role_arn
+}
