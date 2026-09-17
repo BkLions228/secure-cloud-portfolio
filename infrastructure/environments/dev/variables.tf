@@ -87,3 +87,15 @@ variable "github_deployment_branch" {
   type        = string
   default     = "main"
 }
+
+variable "github_organization_id" {
+  description = "Immutable GitHub numeric ID for the organization or user that owns the portfolio repository."
+  type        = string
+  default     = "72536019"
+}
+
+variable "github_repository_id" {
+  description = "Immutable GitHub numeric ID for the portfolio repository."
+  type        = string
+  default     = "1311165823"
+}
