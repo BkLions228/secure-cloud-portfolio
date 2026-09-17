@@ -1,0 +1,7 @@
+aws_region        = "us-east-1"
+project_name      = "secure-cloud-portfolio"
+environment       = "dev"
+owner             = "kellan-wilkerson"
+site_bucket_name  = "replace-with-a-globally-unique-dev-site-bucket"
+price_class       = "PriceClass_100"
+enable_versioning = true
