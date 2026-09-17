@@ -28,3 +28,13 @@ variable "cloudfront_distribution_arn" {
   description = "ARN of the CloudFront distribution used by the portfolio."
   type        = string
 }
+
+variable "github_organization_id" {
+  description = "Immutable GitHub numeric ID for the organization or user that owns the repository."
+  type        = string
+}
+
+variable "github_repository_id" {
+  description = "Immutable GitHub numeric ID for the repository."
+  type        = string
+}

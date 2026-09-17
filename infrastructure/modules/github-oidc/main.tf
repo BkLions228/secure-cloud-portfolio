@@ -50,7 +50,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
       variable = "token.actions.githubusercontent.com:sub"
 
       values = [
-        "repo:${var.github_organization}/${var.github_repository}:ref:refs/heads/${var.github_branch}"
+        "repo:${var.github_organization}@${var.github_organization_id}/${var.github_repository}@${var.github_repository_id}:ref:refs/heads/${var.github_branch}"
       ]
     }
   }

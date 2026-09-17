@@ -17,9 +17,11 @@ module "static_site" {
 module "github_oidc" {
   source = "../../modules/github-oidc"
 
-  github_organization = var.github_organization
-  github_repository   = var.github_repository
-  github_branch       = var.github_deployment_branch
+  github_organization    = var.github_organization
+  github_organization_id = var.github_organization_id
+  github_repository      = var.github_repository
+  github_repository_id   = var.github_repository_id
+  github_branch          = var.github_deployment_branch
 
   role_name = "${var.project_name}-${var.environment}-github-deploy"
 
