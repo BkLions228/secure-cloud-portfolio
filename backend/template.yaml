@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Secure Cloud Portfolio - Serverless Visitor Analytics API
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+
+  AllowedOrigin:
+    Type: String
+    Description: HTTPS origin permitted to call the visitor API.
+
+Globals:
+  Function:
+    Runtime: python3.10
+    Architectures:
+      - x86_64
+    MemorySize: 128
+    Timeout: 5
+    Tracing: Active
+
+Resources:
+
+  # ---------------------------------------------------------------------------
+  # DynamoDB
+  # ---------------------------------------------------------------------------
+
+  VisitorTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub secure-cloud-portfolio-${Environment}-visitors
+      BillingMode: PAY_PER_REQUEST
+
+      AttributeDefinitions:
+        - AttributeName: counter_id
+          AttributeType: S
+
+      KeySchema:
+        - AttributeName: counter_id
+          KeyType: HASH
+
+      SSESpecification:
+        SSEEnabled: true
+
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+      Tags:
+        - Key: Project
+          Value: secure-cloud-portfolio
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: AWS-SAM
+
+  # ---------------------------------------------------------------------------
+  # API Gateway HTTP API
+  # ---------------------------------------------------------------------------
+
+  VisitorApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Environment
+
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowedOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+        MaxAge: 600
+
+  # ---------------------------------------------------------------------------
+  # Health Lambda
+  # ---------------------------------------------------------------------------
+
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub secure-cloud-portfolio-${Environment}-health
+      CodeUri: src/health/
+      Handler: app.lambda_handler
+      Description: Health endpoint for the Secure Cloud Portfolio API.
+
+      Events:
+        HealthEndpoint:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref VisitorApi
+            Path: /health
+            Method: GET
+
+      Tags:
+        Project: secure-cloud-portfolio
+        Environment: !Ref Environment
+        ManagedBy: AWS-SAM
+
+  # ---------------------------------------------------------------------------
+  # Visitor Counter Lambda
+  # ---------------------------------------------------------------------------
+
+  VisitorCounterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub secure-cloud-portfolio-${Environment}-visitor-counter
+      CodeUri: src/visitor_counter/
+      Handler: app.lambda_handler
+      Description: Atomically increments the Secure Cloud Portfolio page-view counter.
+
+      Environment:
+        Variables:
+          VISITOR_TABLE_NAME: !Ref VisitorTable
+
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Sid: UpdateVisitorCounter
+              Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt VisitorTable.Arn
+
+      Events:
+        VisitorEndpoint:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref VisitorApi
+            Path: /visitor
+            Method: POST
+
+      Tags:
+        Project: secure-cloud-portfolio
+        Environment: !Ref Environment
+        ManagedBy: AWS-SAM
+
+  HealthFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${HealthFunction}
+      RetentionInDays: 30
+
+  VisitorCounterFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${VisitorCounterFunction}
+      RetentionInDays: 30
+
+Outputs:
+
+  ApiUrl:
+    Description: Base URL for the visitor analytics API.
+    Value: !Sub https://${VisitorApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${Environment}
+
+  HealthEndpoint:
+    Description: Health endpoint for the visitor analytics API.
+    Value: !Sub https://${VisitorApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${Environment}/health
+
+  VisitorEndpoint:
+    Description: Visitor counter endpoint.
+    Value: !Sub https://${VisitorApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${Environment}/visitor
+
+  VisitorTableName:
+    Description: DynamoDB visitor counter table.
+    Value: !Ref VisitorTable
+
+  HealthFunctionName:
+    Description: Health Lambda function.
+    Value: !Ref HealthFunction
+
+  VisitorCounterFunctionName:
+    Description: Visitor counter Lambda function.
+    Value: !Ref VisitorCounterFunction
