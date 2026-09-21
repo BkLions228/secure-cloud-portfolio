@@ -313,6 +313,40 @@ Examples include:
 
 Each finding requires a documented technical disposition rather than blind remediation.
 
+## GitHub Actions CI Validation
+
+Policy-as-code controls were validated against Pull Request #6 using a clean GitHub-hosted Linux runner.
+
+### Final Successful Run
+
+- Workflow: `Policy as Code`
+- Job: `Security Policy Validation`
+- Event: `pull_request`
+- Branch: `feature/policy-as-code-guardrails`
+- Run ID: `35554323091`
+- Result: **SUCCESS**
+- Duration: approximately 1 minute 32 seconds
+
+The successful CI execution independently validated the repository's Terraform configuration, AWS SAM template, Python unit tests, enforced Checkov security baseline, and intentionally insecure negative-test fixtures.
+
+### CI Remediation Evidence
+
+Two earlier CI executions identified environment-specific integration issues before the final successful run:
+
+1. **Run 35553750043 — dependency conflict**
+   - Checkov 3.3.19 and AWS SAM CLI 1.163.0 required incompatible versions of shared Python dependencies.
+   - Remediation: AWS SAM CLI was isolated in a dedicated Python virtual environment.
+
+2. **Run 35554109269 — Linux executable permission**
+   - The negative-test harness was stored with Git mode `100644`.
+   - The GitHub Linux runner returned exit code 126 (`Permission denied`).
+   - Remediation: the script was committed with executable mode `100755`.
+
+3. **Run 35554323091 — successful validation**
+   - All Policy-as-Code CI checks completed successfully.
+
+These failures were remediated without bypassing, disabling, or weakening the security controls.
+
 ## Evidence Chain
 
 ```text
