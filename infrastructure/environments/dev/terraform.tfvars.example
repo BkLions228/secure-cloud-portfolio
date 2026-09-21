@@ -5,3 +5,5 @@ owner             = "kellan-wilkerson"
 site_bucket_name  = "replace-with-a-globally-unique-dev-site-bucket"
 price_class       = "PriceClass_100"
 enable_versioning = true
+# Serverless resources monitored by Terraform
+api_gateway_id = "replace-with-http-api-id"

@@ -21,3 +21,17 @@ output "github_actions_role_arn" {
   description = "IAM role ARN used by GitHub Actions for frontend deployment."
   value       = module.github_oidc.role_arn
 }
+output "monitoring_sns_topic_arn" {
+  description = "SNS topic used for development monitoring alerts."
+  value       = module.monitoring.sns_topic_arn
+}
+
+output "monitoring_alarm_names" {
+  description = "CloudWatch alarms protecting the development environment."
+  value       = module.monitoring.alarm_names
+}
+
+output "monitoring_dashboard_name" {
+  description = "CloudWatch operations dashboard for the development environment."
+  value       = module.monitoring.dashboard_name
+}
