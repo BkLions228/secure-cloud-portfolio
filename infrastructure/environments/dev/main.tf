@@ -31,6 +31,23 @@ module "github_oidc" {
     module.static_site.cloudfront_distribution_arn
   )
 }
+
+module "github_backend_deploy" {
+  source = "../../modules/github-backend-deploy"
+
+  github_oidc_provider_arn = module.github_oidc.oidc_provider_arn
+
+  github_organization    = var.github_organization
+  github_organization_id = var.github_organization_id
+  github_repository      = var.github_repository
+  github_repository_id   = var.github_repository_id
+  github_branch          = var.github_deployment_branch
+
+  role_name = "${var.project_name}-${var.environment}-github-backend-deploy"
+
+  project_name = var.project_name
+  environment  = var.environment
+}
 module "monitoring" {
   source = "../../modules/monitoring"
 

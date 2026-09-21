@@ -67,3 +67,5 @@ coverage/
 
 # Logs
 *.log
+# GitHub Actions local SAM CLI virtual environment
+.sam-venv/
