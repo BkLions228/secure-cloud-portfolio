@@ -99,3 +99,16 @@ variable "github_repository_id" {
   type        = string
   default     = "1311165823"
 }
+variable "api_gateway_id" {
+  description = "HTTP API Gateway ID monitored by CloudWatch."
+  type        = string
+
+  validation {
+    condition = can(regex(
+      "^[a-z0-9]+$",
+      var.api_gateway_id
+    ))
+
+    error_message = "The API Gateway ID must contain only lowercase letters and numbers."
+  }
+}

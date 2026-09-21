@@ -31,3 +31,40 @@ module "github_oidc" {
     module.static_site.cloudfront_distribution_arn
   )
 }
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  cloudfront_distribution_id = (
+    module.static_site.cloudfront_distribution_id
+  )
+
+  api_gateway_id    = var.api_gateway_id
+  api_gateway_stage = var.environment
+
+  api_access_log_group_name = (
+    "/aws/apigateway/${var.project_name}-${var.environment}-visitor-api"
+  )
+
+  health_function_name = (
+    "${var.project_name}-${var.environment}-health"
+  )
+
+  visitor_function_name = (
+    "${var.project_name}-${var.environment}-visitor-counter"
+  )
+
+  dynamodb_table_name = (
+    "${var.project_name}-${var.environment}-visitors"
+  )
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Owner       = var.owner
+    ManagedBy   = "Terraform"
+    Purpose     = "monitoring-observability"
+  }
+}
