@@ -126,7 +126,22 @@ data "aws_iam_policy_document" "github_backend_deploy" {
       "arn:aws:cloudformation:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:stack/${local.stack_name}/*"
     ]
   }
+  #
+  # AWS SAM transform
+  #
 
+  statement {
+    sid    = "AllowSamTransformChangeSet"
+    effect = "Allow"
+
+    actions = [
+      "cloudformation:CreateChangeSet"
+    ]
+
+    resources = [
+      "arn:aws:cloudformation:${data.aws_region.current.region}:aws:transform/Serverless-2016-10-31"
+    ]
+  }
   #
   # Lambda functions
   #
