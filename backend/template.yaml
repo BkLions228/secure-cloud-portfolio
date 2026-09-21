@@ -64,10 +64,29 @@ Resources:
   # API Gateway HTTP API
   # ---------------------------------------------------------------------------
 
+  VisitorApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/apigateway/secure-cloud-portfolio-${Environment}-visitor-api
+      RetentionInDays: 30
+
   VisitorApi:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: !Ref Environment
+
+      StageVariables:
+        Environment: !Ref Environment
+
+      DefaultRouteSettings:
+        DetailedMetricsEnabled: true
+
+      AccessLogSettings:
+        DestinationArn: !GetAtt VisitorApiAccessLogGroup.Arn
+        Format: >-
+          {"requestId":"$context.requestId","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","routeKey":"$context.routeKey","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength","integrationError":"$context.integrationErrorMessage"}
 
       CorsConfiguration:
         AllowOrigins:
@@ -91,6 +110,7 @@ Resources:
       CodeUri: src/health/
       Handler: app.lambda_handler
       Description: Health endpoint for the Secure Cloud Portfolio API.
+
 
       Events:
         HealthEndpoint:
@@ -116,6 +136,7 @@ Resources:
       CodeUri: src/visitor_counter/
       Handler: app.lambda_handler
       Description: Atomically increments the Secure Cloud Portfolio page-view counter.
+
 
       Environment:
         Variables:
@@ -143,21 +164,6 @@ Resources:
         Environment: !Ref Environment
         ManagedBy: AWS-SAM
 
-  HealthFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${HealthFunction}
-      RetentionInDays: 30
-
-  VisitorCounterFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${VisitorCounterFunction}
-      RetentionInDays: 30
 
 Outputs:
 
