@@ -47,10 +47,13 @@ jobs:
           terraform init -backend=false
           terraform validate
       - name: Install AWS SAM CLI
-        run: pip install aws-sam-cli==1.163.0
+        run: |
+          python -m venv .sam-venv
+          .sam-venv/bin/python -m pip install --upgrade pip
+          .sam-venv/bin/pip install aws-sam-cli==1.163.0
 
       - name: SAM template validation
-        run: sam validate --template-file backend/template.yaml --lint
+        run: .sam-venv/bin/sam validate --template-file backend/template.yaml --lint
 
       - name: Python unit tests
         run: pytest backend/tests -v
