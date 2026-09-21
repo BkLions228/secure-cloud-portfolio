@@ -1,0 +1,143 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: backend-dev
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  STACK_NAME: secure-cloud-portfolio-dev-api
+  ENVIRONMENT: dev
+  ALLOWED_ORIGIN: ${{ vars.PORTFOLIO_ORIGIN }}
+  SAM_ARTIFACT_BUCKET: ${{ vars.SAM_ARTIFACT_BUCKET }}
+
+jobs:
+  deploy:
+    name: Test, Build, Deploy, and Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install backend test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements-dev.txt
+
+      - name: Run backend unit tests
+        run: |
+          pytest backend/tests -v
+
+      - name: Install AWS SAM CLI
+        run: |
+          python -m venv .sam-venv
+          .sam-venv/bin/python -m pip install --upgrade pip
+          .sam-venv/bin/pip install aws-sam-cli==1.163.0
+          echo "$GITHUB_WORKSPACE/.sam-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Validate SAM template
+        run: |
+          sam validate \
+            --template-file backend/template.yaml \
+            --lint
+
+      - name: Build SAM application
+        run: |
+          sam build \
+            --template-file backend/template.yaml
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_BACKEND_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: |
+          aws sts get-caller-identity
+
+      - name: Deploy backend
+        run: |
+          sam deploy \
+            --template-file .aws-sam/build/template.yaml \
+            --stack-name "$STACK_NAME" \
+            --s3-bucket "$SAM_ARTIFACT_BUCKET" \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides \
+              Environment="$ENVIRONMENT" \
+              AllowedOrigin="$ALLOWED_ORIGIN" \
+            --region "$AWS_REGION" \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset
+
+      - name: Discover deployed health endpoint
+        id: endpoint
+        shell: bash
+        run: |
+          HEALTH_ENDPOINT="$(
+            aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --region "$AWS_REGION" \
+              --query "Stacks[0].Outputs[?OutputKey=='HealthEndpoint'].OutputValue | [0]" \
+              --output text
+          )"
+
+          if [[ -z "$HEALTH_ENDPOINT" || "$HEALTH_ENDPOINT" == "None" ]]; then
+            echo "ERROR: HealthEndpoint was not returned by CloudFormation."
+            exit 1
+          fi
+
+          echo "health_endpoint=$HEALTH_ENDPOINT" >> "$GITHUB_OUTPUT"
+          echo "Health endpoint discovered from CloudFormation."
+
+      - name: Validate deployed backend health
+        shell: bash
+        env:
+          HEALTH_ENDPOINT: ${{ steps.endpoint.outputs.health_endpoint }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            echo "Health-check attempt $attempt of 5"
+
+            HTTP_STATUS="$(
+              curl \
+                --silent \
+                --show-error \
+                --output health-response.json \
+                --write-out "%{http_code}" \
+                "$HEALTH_ENDPOINT" || true
+            )"
+
+            if [[ "$HTTP_STATUS" == "200" ]] && \
+               python -c 'import json; data=json.load(open("health-response.json")); assert data.get("status") == "healthy"'; then
+              echo "PASS: backend health endpoint returned HTTP 200 and healthy status."
+              cat health-response.json
+              exit 0
+            fi
+
+            echo "Health check not ready. HTTP status: $HTTP_STATUS"
+            cat health-response.json 2>/dev/null || true
+            sleep 10
+          done
+
+          echo "ERROR: backend failed post-deployment health validation."
+          exit 1

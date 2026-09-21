@@ -35,3 +35,7 @@ output "monitoring_dashboard_name" {
   description = "CloudWatch operations dashboard for the development environment."
   value       = module.monitoring.dashboard_name
 }
+output "github_backend_deploy_role_arn" {
+  description = "IAM role ARN used by GitHub Actions for backend SAM deployments."
+  value       = module.github_backend_deploy.role_arn
+}
